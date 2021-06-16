@@ -21,8 +21,20 @@
 				"title": "Hello World"
 			},
 			{
-				"command": "theofficialfirebase.time",
-				"title": "Current Time"
+				"command": "theofficialfirebase.selectProject",
+				"title": "select a project from .firebaserc"
+			},
+			{
+				"command": "theofficialfirebase.initializeFirebase",
+				"title": "init a Firebase project in the current directory"
+			},
+			{
+				"command": "theofficialfirebase.refreshProjects",
+				"title": "Refresh",
+				"icon": {
+					"light": "resources/light/refresh.svg",
+					"dark": "resources/dark/refresh.svg"
+				}
 			},
 			{
 				"command": "nodeDependencies.refreshEntry",
@@ -34,7 +46,15 @@
 			}
 		],
 		"views": {
-			"explorer": [
+			"thefirebase": [
+				{
+					"id": "projects",
+					"name": "Firebase projects associated with the app"
+				},
+				{
+					"id": "apps",
+					"name": "list of apps for the selected project"
+				},
 				{
 					"id": "nodeDependencies",
 					"name": "Node Dependencies"
@@ -43,7 +63,9 @@
 		},
 		"viewsContainers": {
 			"activitybar": [{
-
+				"id": "thefirebase",
+				"title": "The official Firebase Extension",
+				"icon": "media/dep.svg"
 			}]
 		},
 		"menus": {
@@ -52,9 +74,20 @@
 					"command": "nodeDependencies.refreshEntry",
 					"when": "view == nodeDependencies",
 					"group": "navigation"
+				},
+				{
+					"command": "theofficialfirebase.refreshProjects",
+					"when": "view == projects",
+					"group": "navigation"
 				}
 			]
-		}
+		},
+		"viewsWelcome": [
+			{
+				"view": "projects",
+				"contents": "No Firebase project found. \n[Initialize Firebase](command:theofficialfirebase.initializeFirebase)"
+			}
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "yarn run package",
@@ -82,5 +115,8 @@
 		"ts-loader": "^9.2.2",
 		"webpack": "^5.38.1",
 		"webpack-cli": "^4.7.0"
+	},
+	"dependencies": {
+		"firebase-tools":"9.12.1"
 	}
 }
