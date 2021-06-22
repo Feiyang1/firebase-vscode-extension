@@ -157,3 +157,51 @@ function createProjectSelectCommand(projectId: string): vscode.Command {
         arguments: [projectId]
     };
 }
+
+export class AccountProvider implements vscode.TreeDataProvider<Account> {
+
+    private _onDidChangeTreeData: vscode.EventEmitter<App | undefined | null | void> = new vscode.EventEmitter<App | undefined | null | void>();
+    readonly onDidChangeTreeData: vscode.Event<App | undefined | null | void> = this._onDidChangeTreeData.event;
+    private email: string | null = null;
+
+    constructor() { }
+
+    refresh(): void {
+        this._onDidChangeTreeData.fire();
+    }
+
+    getTreeItem(element: App): vscode.TreeItem {
+        return element;
+    }
+
+    async getChildren(element?: App): Promise<Account[]> {
+        if (!this.email) {
+            vscode.window.showInformationMessage('Please log in first');
+            return Promise.resolve([]);
+        }
+
+        // apps are not nested
+        if (element) {
+            return Promise.resolve([]);
+        } else {
+            // get all apps in the projects
+            return [new Account(this.email, this.email, vscode.TreeItemCollapsibleState.None)];
+        }
+    }
+}
+class Account extends vscode.TreeItem {
+    constructor(
+        public readonly label: string,
+        public readonly description: string,
+        public readonly collapsibleState: vscode.TreeItemCollapsibleState
+    ) {
+        super(label, collapsibleState);
+        this.tooltip = `${this.label}`;
+    }
+
+    // TODO: use right icons
+    iconPath = {
+        light: join(__filename, '..', '..', 'resources', 'light', 'dependency.svg'),
+        dark: join(__filename, '..', '..', 'resources', 'dark', 'dependency.svg')
+    };
+}

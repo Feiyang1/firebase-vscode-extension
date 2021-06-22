@@ -11,7 +11,10 @@
 	],
 	"activationEvents": [
         "onCommand:theofficialfirebase.helloWorld",
-		"onView:nodeDependencies"
+		"onView:nodeDependencies",
+		"onView:account",
+		"onView:projects",
+		"onView:apps"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
@@ -43,10 +46,18 @@
 					"light": "resources/light/refresh.svg",
 					"dark": "resources/dark/refresh.svg"
 				}
+			},
+			{
+				"command": "theofficialfirebase.login",
+				"title": "Log in to your firebase account"
 			}
 		],
 		"views": {
 			"thefirebase": [
+				{
+					"id": "account",
+					"name": "Account logged in"
+				}, 
 				{
 					"id": "projects",
 					"name": "Firebase projects associated with the app"
@@ -86,6 +97,10 @@
 			{
 				"view": "projects",
 				"contents": "No Firebase project found. \n[Initialize Firebase](command:theofficialfirebase.initializeFirebase)"
+			},
+			{
+				"view": "account",
+				"contents": "[Login to your Firebase account](command:theofficialfirebase.login)"
 			}
 		]
 	},

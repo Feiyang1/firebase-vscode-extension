@@ -1,13 +1,13 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { AppsProvider, initializeFirebase, isFirebaseProjectInitialized, loadProjectList, ProjectsProvider } from './firebase';
+import { AccountProvider, AppsProvider, initializeFirebase, isFirebaseProjectInitialized, loadProjectList, ProjectsProvider } from './firebase';
 import { NodeDependenciesProvider } from './providers';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-	
+
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "theofficialfirebase" is now active!');
@@ -16,18 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
 	let disposable = vscode.commands.registerCommand('theofficialfirebase.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		
-		if (isFirebaseProjectInitialized()) {
-			vscode.window.showInformationMessage('loading apps!');
-			const projects = loadProjectList();
-
-			// list apps for the default project
-			appsProvider.setProjectId(projects['default']);
-		} else {
-			vscode.window.showInformationMessage('no project found!');
-		}
+		vscode.window.showInformationMessage('helloworld logging');
 	});
 
 	context.subscriptions.push(disposable);
@@ -46,12 +35,16 @@ export function activate(context: vscode.ExtensionContext) {
 		projectsProvider.refresh();
 	});
 
+	vscode.commands.registerCommand('theofficialfirebase.login', async () => {
+		vscode.window.showInformationMessage('logging');
+	});
+
 	context.subscriptions.push(disposable1);
 
 	const nodeDependenciesProvider = new NodeDependenciesProvider(vscode.workspace.rootPath!);
 	vscode.window.registerTreeDataProvider('nodeDependencies', nodeDependenciesProvider);
 
-	vscode.commands.registerCommand('nodeDependencies.refreshEntry', ()=> {
+	vscode.commands.registerCommand('nodeDependencies.refreshEntry', () => {
 		nodeDependenciesProvider.refresh();
 	})
 
@@ -61,7 +54,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const projectsProvider = new ProjectsProvider();
 	vscode.window.registerTreeDataProvider('projects', projectsProvider);
+
+	const accountProvider = new AccountProvider();
+	vscode.window.registerTreeDataProvider('account', accountProvider);
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
