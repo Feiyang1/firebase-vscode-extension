@@ -1,5 +1,5 @@
 {
-  "name": "theofficialfirebase",
+	"name": "theofficialfirebase",
 	"displayName": "TheOfficialFirebase",
 	"description": "The official Firebase extension",
 	"version": "0.0.1",
@@ -10,7 +10,7 @@
 		"Other"
 	],
 	"activationEvents": [
-        "onCommand:theofficialfirebase.helloWorld",
+		"onCommand:theofficialfirebase.helloWorld",
 		"onView:nodeDependencies",
 		"onView:account",
 		"onView:projects",
@@ -57,7 +57,7 @@
 				{
 					"id": "account",
 					"name": "Account logged in"
-				}, 
+				},
 				{
 					"id": "projects",
 					"name": "Firebase projects associated with the app"
@@ -73,11 +73,13 @@
 			]
 		},
 		"viewsContainers": {
-			"activitybar": [{
-				"id": "thefirebase",
-				"title": "The official Firebase Extension",
-				"icon": "media/dep.svg"
-			}]
+			"activitybar": [
+				{
+					"id": "thefirebase",
+					"title": "The official Firebase Extension",
+					"icon": "media/dep.svg"
+				}
+			]
 		},
 		"menus": {
 			"view/title": [
@@ -132,6 +134,7 @@
 		"webpack-cli": "^4.7.0"
 	},
 	"dependencies": {
-		"firebase-tools":"9.12.1"
+		"firebase-tools": "9.12.1",
+		"portfinder": "1.0.28"
 	}
 }
