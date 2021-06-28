@@ -3,6 +3,7 @@ import { readFileSync, accessSync, } from 'fs';
 import { join } from 'path';
 // @ts-ignore
 import * as firebaseCli from 'firebase-tools';
+import { AccountInfo } from './account';
 
 export const FIREBASE_JSON = 'firebase.json';
 export const FIREBASE_RC = '.firebaserc';
@@ -162,7 +163,7 @@ export class AccountProvider implements vscode.TreeDataProvider<Account> {
 
     private _onDidChangeTreeData: vscode.EventEmitter<App | undefined | null | void> = new vscode.EventEmitter<App | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<App | undefined | null | void> = this._onDidChangeTreeData.event;
-    private email: string | null = null;
+    private accountInfo: AccountInfo | null = null;
 
     constructor() { }
 
@@ -170,12 +171,16 @@ export class AccountProvider implements vscode.TreeDataProvider<Account> {
         this._onDidChangeTreeData.fire();
     }
 
+    updateAccount(accountInfo: AccountInfo):void {
+        this.accountInfo = accountInfo;
+    }
+
     getTreeItem(element: App): vscode.TreeItem {
         return element;
     }
 
     async getChildren(element?: App): Promise<Account[]> {
-        if (!this.email) {
+        if (!this.accountInfo) {
             vscode.window.showInformationMessage('Please log in first');
             return Promise.resolve([]);
         }
@@ -185,7 +190,7 @@ export class AccountProvider implements vscode.TreeDataProvider<Account> {
             return Promise.resolve([]);
         } else {
             // get all apps in the projects
-            return [new Account(this.email, this.email, vscode.TreeItemCollapsibleState.None)];
+            return [new Account(this.accountInfo.user.email, this.accountInfo.user.email, vscode.TreeItemCollapsibleState.None)];
         }
     }
 }

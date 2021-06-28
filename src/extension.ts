@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { login } from './account';
+import { AccountTokens, cancelLogin, login } from './account';
 import { AccountProvider, AppsProvider, initializeFirebase, isFirebaseProjectInitialized, loadProjectList, ProjectsProvider } from './firebase';
 import { NodeDependenciesProvider } from './providers';
 
@@ -38,7 +38,22 @@ export function activate(context: vscode.ExtensionContext) {
 
 	vscode.commands.registerCommand('theofficialfirebase.login', async () => {
 		vscode.window.showInformationMessage('logging');
-		login();
+
+		const accountInfo = await vscode.window.withProgress({
+			title: 'Waiting for login to complete',
+			location: vscode.ProgressLocation.Notification,
+			cancellable: true
+		},
+		(_, cancelationToken) => {
+			cancelationToken.onCancellationRequested(() => {
+				cancelLogin();
+			});
+			return login();
+		});
+
+		console.log("got tokens successfully", accountInfo);
+		accountProvider.updateAccount(accountInfo);
+		accountProvider.refresh();
 	});
 
 	context.subscriptions.push(disposable1);
