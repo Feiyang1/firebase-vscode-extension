@@ -4,7 +4,6 @@ import * as http from 'http';
 import { URL, URLSearchParams } from 'url'
 import fetch from 'node-fetch';
 import * as jwt from 'jsonwebtoken';
-import { UserInfo } from 'os';
 
 const OAUTH_END_POINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const EXCHANGE_END_POINT = 'https://oauth2.googleapis.com/token';
@@ -47,10 +46,12 @@ export async function login(): Promise<AccountInfo> {
                     const accountTokens = await getTokenFromAuthorizationCode(query.get('code')!, redirectUrl);
                     console.log('got tokens', accountTokens);
                     const userInfo = jwt.decode(accountTokens.id_token) as UserInformation;
-                    resolve({
+
+                    accountInfo = {
                         tokens: accountTokens,
                         user: userInfo
-                    });
+                    };
+                    resolve(accountInfo);
 
                     respond(req, res, 200, '');
                 } catch (err) {
@@ -122,16 +123,16 @@ async function respond(
     res: http.ServerResponse,
     statusCode: number,
     content: string
-  ): Promise<void> {
+): Promise<void> {
 
     res.writeHead(statusCode, {
-      'Content-Length': content.length,
-      'Content-Type': 'text/html'
+        'Content-Length': content.length,
+        'Content-Type': 'text/html'
     });
     res.end(content);
     req.socket.destroy();
-  }
-  
+}
+
 
 export interface AccountInfo {
     tokens: AccountTokens;

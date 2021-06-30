@@ -11,7 +11,6 @@
 	],
 	"activationEvents": [
 		"onCommand:theofficialfirebase.helloWorld",
-		"onView:nodeDependencies",
 		"onView:account",
 		"onView:projects",
 		"onView:apps"
@@ -40,14 +39,6 @@
 				}
 			},
 			{
-				"command": "nodeDependencies.refreshEntry",
-				"title": "Refresh",
-				"icon": {
-					"light": "resources/light/refresh.svg",
-					"dark": "resources/dark/refresh.svg"
-				}
-			},
-			{
 				"command": "theofficialfirebase.login",
 				"title": "Log in to your firebase account"
 			}
@@ -67,8 +58,8 @@
 					"name": "list of apps for the selected project"
 				},
 				{
-					"id": "nodeDependencies",
-					"name": "Node Dependencies"
+					"id": "sites",
+					"name": "list of hosting sites for the selected project"
 				}
 			]
 		},
@@ -83,11 +74,6 @@
 		},
 		"menus": {
 			"view/title": [
-				{
-					"command": "nodeDependencies.refreshEntry",
-					"when": "view == nodeDependencies",
-					"group": "navigation"
-				},
 				{
 					"command": "theofficialfirebase.refreshProjects",
 					"when": "view == projects",

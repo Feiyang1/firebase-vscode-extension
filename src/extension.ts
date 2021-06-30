@@ -2,8 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { AccountTokens, cancelLogin, login } from './account';
-import { AccountProvider, AppsProvider, initializeFirebase, isFirebaseProjectInitialized, loadProjectList, ProjectsProvider } from './firebase';
-import { NodeDependenciesProvider } from './providers';
+import { AccountProvider, AppsProvider, initializeFirebase, isFirebaseProjectInitialized, loadProjectList, ProjectsProvider, SitesProvider } from './firebase';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -25,6 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
 	let disposable1 = vscode.commands.registerCommand('theofficialfirebase.selectProject', (projectId) => {
 		vscode.window.showInformationMessage(`selected project ${projectId}`);
 		appsProvider.setProjectId(projectId);
+		sitesProvider.setProjectId(projectId);
 	});
 
 	let disposable2 = vscode.commands.registerCommand('theofficialfirebase.initializeFirebase', async () => {
@@ -58,13 +58,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(disposable1);
 
-	const nodeDependenciesProvider = new NodeDependenciesProvider(vscode.workspace.rootPath!);
-	vscode.window.registerTreeDataProvider('nodeDependencies', nodeDependenciesProvider);
-
-	vscode.commands.registerCommand('nodeDependencies.refreshEntry', () => {
-		nodeDependenciesProvider.refresh();
-	})
-
 	console.log(AppsProvider)
 	const appsProvider = new AppsProvider();
 	vscode.window.registerTreeDataProvider('apps', appsProvider);
@@ -74,6 +67,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const accountProvider = new AccountProvider();
 	vscode.window.registerTreeDataProvider('account', accountProvider);
+
+	const sitesProvider = new SitesProvider();
+	vscode.window.registerTreeDataProvider('sites', sitesProvider);
 }
 
 // this method is called when your extension is deactivated
