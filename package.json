@@ -41,6 +41,10 @@
 			{
 				"command": "theofficialfirebase.login",
 				"title": "Log in to your firebase account"
+			},
+			{
+				"command": "theofficialfirebase.deploySite",
+				"title": "deploy to Firebase hosting"
 			}
 		],
 		"views": {
@@ -78,6 +82,13 @@
 					"command": "theofficialfirebase.refreshProjects",
 					"when": "view == projects",
 					"group": "navigation"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "theofficialfirebase.deploySite",
+					"when": "view == sites && viewItem == site",
+					"group": "inline"
 				}
 			]
 		},
