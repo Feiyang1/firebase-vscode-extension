@@ -3,7 +3,7 @@
 import * as vscode from 'vscode';
 import { accountInfo, AccountTokens, cancelLogin, login } from './account';
 import { AccountProvider, AppsProvider, initializeFirebase, ProjectsProvider } from './firebase';
-import { deploySite, SitesProvider } from './hosting';
+import { deploySite, SiteItem, SitesProvider } from './hosting';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -26,6 +26,10 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.showInformationMessage(`selected project ${projectId}`);
 		appsProvider.setProjectId(projectId);
 		sitesProvider.setProjectId(projectId);
+	});
+
+	vscode.commands.registerCommand('theofficialfirebase.selectSite', siteId => {
+		vscode.window.showInformationMessage(`selected site ${siteId}`);
 	});
 
 	let disposable2 = vscode.commands.registerCommand('theofficialfirebase.initializeFirebase', async () => {
@@ -57,13 +61,13 @@ export function activate(context: vscode.ExtensionContext) {
 		accountProvider.refresh();
 	});
 
-	vscode.commands.registerCommand('theofficialfirebase.deploySite', async () => {
+	vscode.commands.registerCommand('theofficialfirebase.deploySite', async (node: SiteItem) => {
 		if (!accountInfo) {
 			vscode.window.showInformationMessage('no account info found, please login first');
 			return;
 		}
 
-		deploySite();
+		deploySite(node.siteId, accountInfo.tokens.access_token);
 	});
 
 	context.subscriptions.push(disposable1);

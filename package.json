@@ -27,6 +27,10 @@
 				"title": "select a project from .firebaserc"
 			},
 			{
+				"command": "theofficialfirebase.selectSite",
+				"title": "select a site"
+			},
+			{
 				"command": "theofficialfirebase.initializeFirebase",
 				"title": "init a Firebase project in the current directory"
 			},

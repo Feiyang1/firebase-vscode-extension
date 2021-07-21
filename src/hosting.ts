@@ -4,11 +4,36 @@ import { accountInfo } from './account';
 import { join } from 'path';
 import fetch from 'node-fetch';
 
-export async function deploySite(): Promise<void> {
+const HOSTING_URLS = {
+    ROOT_URL: 'https://firebasehosting.googleapis.com/v1beta1'
+} as const;
+
+export async function deploySite(siteId: string, accessToken: string): Promise<void> {
     console.log('deploying to hosting');
+    const result = await createVersion(siteId, accessToken);
 }
 
-async function createVersion() {
+async function createVersion(siteId: string, accessToken: string): Promise<Version> {
+    const response = await fetch(
+        `${HOSTING_URLS.ROOT_URL}/sites/${siteId}/versions`,
+        {
+            method: 'POST',
+            headers: {
+                authorization: `Bearer ${accessToken}`
+            }
+        }
+    );
+
+    const json = await response.json();
+
+    return json;
+}
+
+async function populateFilesToVersion() {
+
+}
+
+async function uploadFiles() {
 
 }
 
@@ -45,22 +70,30 @@ export class SitesProvider implements vscode.TreeDataProvider<SiteItem> {
         // apps are not nested
         if (element) {
             return Promise.resolve([]);
-        } else if(accountInfo && this.projectId) {
+        } else if (accountInfo && this.projectId) {
 
             // get all apps in the projects
             const sites: Site[] = await getHostingSites(this.projectId, accountInfo.tokens.access_token);
-            return sites.map(s => new SiteItem(s.name, s.defaultUrl, vscode.TreeItemCollapsibleState.None));
+            return sites.map(s => new SiteItem(
+                s.name,
+                s.defaultUrl,
+                s.siteId,
+                createSiteSelectedCommand(s.siteId),
+                vscode.TreeItemCollapsibleState.None
+            ));
         } else {
             return [];
         }
     }
 }
 
-class SiteItem extends vscode.TreeItem {
+export class SiteItem extends vscode.TreeItem {
     contextValue = 'site';
     constructor(
         public readonly siteName: string,
         public readonly siteUrl: string,
+        public readonly siteId: string,
+        public readonly command: vscode.Command,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState
     ) {
         super(siteName, collapsibleState);
@@ -74,8 +107,16 @@ class SiteItem extends vscode.TreeItem {
     };
 }
 
+function createSiteSelectedCommand(siteId: string): vscode.Command {
+    return {
+        title: 'select site',
+        command: 'theofficialfirebase.selectSite',
+        arguments: [siteId]
+    };
+}
+
 async function getHostingSites(projectId: string, accessToken: string): Promise<Site[]> {
-    const url = `https://firebasehosting.googleapis.com/v1beta1/projects/${projectId}/sites`;
+    const url = `${HOSTING_URLS.ROOT_URL}/projects/${projectId}/sites`;
     const response = await fetch(url, {
         headers: {
             authorization: `Bearer ${accessToken}`
@@ -83,12 +124,32 @@ async function getHostingSites(projectId: string, accessToken: string): Promise<
     });
 
     const json = await response.json();
-    return json.sites;
+    return json.sites.map((site: any) => ({
+        ...site,
+        siteId: getSiteId(site.name)
+    }));
 }
 
+function getSiteId(siteName: string): string {
+    const parts = siteName.split('/');
+    return parts[parts.length - 1];
+}
+
+// reference - https://firebase.google.com/docs/reference/hosting/rest/v1beta1/projects.sites?authuser=0#resource:-site
 interface Site {
+    // format: "projects/PROJECT_IDENTIFIER/sites/SITE_ID"
     name: string;
+    siteId: string
     defaultUrl: string;
     appId?: string;
     type: string;
+}
+
+interface Version {
+    name: string;
+    status: VersionStatus;
+}
+
+const enum VersionStatus {
+    CREATED = 'CREATED'
 }
