@@ -2,7 +2,18 @@
 import * as vscode from 'vscode';
 import { accountInfo } from './account';
 import { join } from 'path';
+import {
+    readFileSync, readdirSync, statSync, createReadStream,
+    createWriteStream
+} from 'fs';
 import fetch from 'node-fetch';
+import { FIREBASE_JSON_PATH } from './constants';
+import { createGzip } from 'zlib';
+import { pipeline } from 'stream';
+import { promisify } from 'util';
+import { createHash } from 'crypto';
+
+const pipe = promisify(pipeline);
 
 const HOSTING_URLS = {
     ROOT_URL: 'https://firebasehosting.googleapis.com/v1beta1'
@@ -10,7 +21,14 @@ const HOSTING_URLS = {
 
 export async function deploySite(siteId: string, accessToken: string): Promise<void> {
     console.log('deploying to hosting');
-    const result = await createVersion(siteId, accessToken);
+    const version = await createVersion(siteId, accessToken);
+    const filesToUpload = getFilesForUpload();
+
+    const uploadUrl = await populateFilesToVersion(version, filesToUpload, accessToken);
+
+    // upload file contents
+
+    // make verison official
 }
 
 async function createVersion(siteId: string, accessToken: string): Promise<Version> {
@@ -29,15 +47,75 @@ async function createVersion(siteId: string, accessToken: string): Promise<Versi
     return json;
 }
 
-async function populateFilesToVersion() {
+async function populateFilesToVersion(version: Version, filesToUpload: FilesToUpload, accessToken: string): Promise<string> {
 
+    // https://firebase.google.com/docs/reference/hosting/rest/v1beta1/sites.versions/populateFiles?authuser=0#request-body
+    const filesRequest: Record<string, string> = {};
+    for (const file of filesToUpload.files) {
+        const gzip = createGzip();
+        const source = createReadStream(file);
+        const destination = createWriteStream(`${file}.gz`);
+        await pipe(source, gzip, destination);
+        
+        const gzipedFileBuffer = readFileSync(`${file}.gz`);
+        const hashsum = createHash('sha256') ;
+        hashsum.update(gzipedFileBuffer);
+        const hex = hashsum.digest('hex');
+
+        const relativeFilePath = file.substring(filesToUpload.baseDir.length);
+        filesRequest[relativeFilePath] = hex;
+    }
+
+    const response = await fetch(
+        `${HOSTING_URLS.ROOT_URL}/${version.name}:populateFiles`,
+        {
+            method: 'POST',
+            headers: {
+                authorization: `Bearer ${accessToken}`
+            }
+        }
+    );
+    
+    const json = await response.json();
+    return json.uploadUrl;
 }
 
 async function uploadFiles() {
 
 }
 
+// TODO: error handling
+function getFilesForUpload(): FilesToUpload {
+    // read firebase.json for the files to upload
+    const firebaseJson = JSON.parse(readFileSync(FIREBASE_JSON_PATH, { encoding: 'utf-8' }));
 
+    if (!firebaseJson.hosting) {
+        throw Error(`hosting is missing in ${FIREBASE_JSON_PATH}`);
+    }
+
+    // TODO: handle hosting.ignore
+    const publicDir = join(vscode.workspace.rootPath ?? '', firebaseJson.hosting.public);
+    return {
+        baseDir: publicDir,
+        files: getAllFiles(publicDir)
+    };
+}
+
+function getAllFiles(baseDir: string): string[] {
+    const fileList: string[] = [];
+    for (const fileOrDirName of readdirSync(baseDir)) {
+        const fileOrDirPath = join(baseDir, fileOrDirName);
+        const stat = statSync(fileOrDirPath);
+
+        if (stat.isDirectory()) {
+            fileList.push(...getAllFiles(fileOrDirPath));
+        } else {
+            fileList.push(fileOrDirPath);
+        }
+    }
+
+    return fileList;
+}
 
 export class SitesProvider implements vscode.TreeDataProvider<SiteItem> {
 
@@ -146,10 +224,16 @@ interface Site {
 }
 
 interface Version {
+    // sites/vscodeplugin/versions/20b7a041dae97b47
     name: string;
     status: VersionStatus;
 }
 
 const enum VersionStatus {
     CREATED = 'CREATED'
+}
+
+interface FilesToUpload {
+    baseDir: string;
+    files: string[];
 }
