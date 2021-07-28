@@ -22,13 +22,33 @@ const HOSTING_URLS = {
 export async function deploySite(siteId: string, accessToken: string): Promise<void> {
     console.log('deploying to hosting');
     const version = await createVersion(siteId, accessToken);
-    const filesToUpload = getFilesForUpload();
+    const filesToUpload = await getFilesForUpload();
 
     const uploadUrl = await populateFilesToVersion(version, filesToUpload, accessToken);
 
     // upload file contents
+    await uploadFileContents(uploadUrl, filesToUpload, accessToken);
 
     // make verison official
+}
+
+async function uploadFileContents(uploadUrl: string, filesToUpload: FilesToUpload, accessToken: string): Promise<void> {
+    for (const file of filesToUpload.files) {
+        const fileStream = createReadStream(file.path);
+        const gzip = createGzip();
+        const response = await fetch(
+            `${uploadUrl}/${file.hash}`,
+            { 
+                method: 'POST',
+                headers: {
+                    authorization: `Bearer ${accessToken}`
+                },
+                body: fileStream.pipe(gzip) 
+            }
+        );
+        // const json = await response.json();
+        console.log(response.statusText);
+    }
 }
 
 async function createVersion(siteId: string, accessToken: string): Promise<Version> {
@@ -52,18 +72,8 @@ async function populateFilesToVersion(version: Version, filesToUpload: FilesToUp
     // https://firebase.google.com/docs/reference/hosting/rest/v1beta1/sites.versions/populateFiles?authuser=0#request-body
     const filesRequest: Record<string, string> = {};
     for (const file of filesToUpload.files) {
-        const gzip = createGzip();
-        const source = createReadStream(file);
-        const destination = createWriteStream(`${file}.gz`);
-        await pipe(source, gzip, destination);
-        
-        const gzipedFileBuffer = readFileSync(`${file}.gz`);
-        const hashsum = createHash('sha256') ;
-        hashsum.update(gzipedFileBuffer);
-        const hex = hashsum.digest('hex');
-
-        const relativeFilePath = file.substring(filesToUpload.baseDir.length);
-        filesRequest[relativeFilePath] = hex;
+        const relativeFilePath = file.path.substring(filesToUpload.baseDir.length);
+        filesRequest[relativeFilePath] = file.hash;
     }
 
     const response = await fetch(
@@ -72,10 +82,11 @@ async function populateFilesToVersion(version: Version, filesToUpload: FilesToUp
             method: 'POST',
             headers: {
                 authorization: `Bearer ${accessToken}`
-            }
+            },
+            body: JSON.stringify({ files: filesRequest })
         }
     );
-    
+
     const json = await response.json();
     return json.uploadUrl;
 }
@@ -85,7 +96,7 @@ async function uploadFiles() {
 }
 
 // TODO: error handling
-function getFilesForUpload(): FilesToUpload {
+async function getFilesForUpload(): Promise<FilesToUpload> {
     // read firebase.json for the files to upload
     const firebaseJson = JSON.parse(readFileSync(FIREBASE_JSON_PATH, { encoding: 'utf-8' }));
 
@@ -97,20 +108,33 @@ function getFilesForUpload(): FilesToUpload {
     const publicDir = join(vscode.workspace.rootPath ?? '', firebaseJson.hosting.public);
     return {
         baseDir: publicDir,
-        files: getAllFiles(publicDir)
+        files: await getAllFiles(publicDir)
     };
 }
 
-function getAllFiles(baseDir: string): string[] {
-    const fileList: string[] = [];
+async function getAllFiles(baseDir: string): Promise<FileToUpload[]> {
+    const fileList: FileToUpload[] = [];
     for (const fileOrDirName of readdirSync(baseDir)) {
         const fileOrDirPath = join(baseDir, fileOrDirName);
         const stat = statSync(fileOrDirPath);
 
         if (stat.isDirectory()) {
-            fileList.push(...getAllFiles(fileOrDirPath));
+            fileList.push(...await getAllFiles(fileOrDirPath));
         } else {
-            fileList.push(fileOrDirPath);
+            const gzip = createGzip();
+            const source = createReadStream(fileOrDirPath);
+            const destination = createWriteStream(`${fileOrDirPath}.gz`);
+            await pipe(source, gzip, destination);
+
+            const gzipedFileBuffer = readFileSync(`${fileOrDirPath}.gz`);
+            const hashsum = createHash('sha256');
+            hashsum.update(gzipedFileBuffer);
+            const hex = hashsum.digest('hex');
+
+            fileList.push({
+                path: fileOrDirPath,
+                hash: hex
+            });
         }
     }
 
@@ -235,5 +259,10 @@ const enum VersionStatus {
 
 interface FilesToUpload {
     baseDir: string;
-    files: string[];
+    files: FileToUpload[];
+}
+
+interface FileToUpload {
+    path: string;
+    hash: string;
 }
