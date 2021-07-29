@@ -12,6 +12,7 @@ import { createGzip } from 'zlib';
 import { pipeline } from 'stream';
 import { promisify } from 'util';
 import { createHash } from 'crypto';
+import { URLSearchParams } from 'url';
 
 const pipe = promisify(pipeline);
 
@@ -29,7 +30,40 @@ export async function deploySite(siteId: string, accessToken: string): Promise<v
     // upload file contents
     await uploadFileContents(uploadUrl, filesToUpload, accessToken);
 
-    // make verison official
+    // finalize the version
+    await finalizeVersion(version, accessToken);
+
+    // create release
+    await createRelease(siteId, version, accessToken);
+}
+
+async function createRelease(siteId: string, version: Version, accessToken: string): Promise<void> {
+    const params = new URLSearchParams({
+        versionName: version.name
+    });
+    const response = await fetch(`${HOSTING_URLS.ROOT_URL}/sites/${siteId}/releases?${params}`, {
+        method: 'POST',
+        headers: {
+            authorization: `Bearer ${accessToken}`
+        }
+    });
+
+    console.log(response);
+}
+
+async function finalizeVersion(version: Version, accessToken: string): Promise<void> {
+    const response = await fetch(`${HOSTING_URLS.ROOT_URL}/${version.name}`, {
+        method: 'PATCH',
+        headers: {
+            authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+            ...version,
+            status: VersionStatus.FINALIZED
+        })
+    });
+
+    console.log(response);
 }
 
 async function uploadFileContents(uploadUrl: string, filesToUpload: FilesToUpload, accessToken: string): Promise<void> {
@@ -38,15 +72,14 @@ async function uploadFileContents(uploadUrl: string, filesToUpload: FilesToUploa
         const gzip = createGzip();
         const response = await fetch(
             `${uploadUrl}/${file.hash}`,
-            { 
+            {
                 method: 'POST',
                 headers: {
                     authorization: `Bearer ${accessToken}`
                 },
-                body: fileStream.pipe(gzip) 
+                body: fileStream.pipe(gzip)
             }
         );
-        // const json = await response.json();
         console.log(response.statusText);
     }
 }
@@ -254,7 +287,8 @@ interface Version {
 }
 
 const enum VersionStatus {
-    CREATED = 'CREATED'
+    CREATED = 'CREATED',
+    FINALIZED = 'FINALIZED'
 }
 
 interface FilesToUpload {
